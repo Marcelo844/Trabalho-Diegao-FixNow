@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("CLIENT") // CLIENT | PROVIDER
+  emailVerified Boolean   @default(false)
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+
+  services      Service[] @relation("ProviderServices")
+  jobsClient    Job[]     @relation("ClientJobs")
+  jobsProvider  Job[]     @relation("ProviderJobs")
+  tokens        VerificationToken[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  priceCents  Int
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  provider    User     @relation("ProviderServices", fields: [providerId], references: [id])
+  providerId  Int
+
+  jobs        Job[]
+}
+
+model Job {
+  id          Int      @id @default(autoincrement())
+  notes       String?
+  status      String   @default("OPEN") // OPEN | ASSIGNED | DONE | CANCELLED
+  createdAt   DateTime @default(now())
+
+  client      User     @relation("ClientJobs", fields: [clientId], references: [id])
+  clientId    Int
+
+  provider    User?    @relation("ProviderJobs", fields: [providerId], references: [id])
+  providerId  Int?
+
+  service     Service  @relation(fields: [serviceId], references: [id])
+  serviceId   Int
+}
+
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
